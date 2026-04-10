@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useForm, ValidationError } from '@formspree/react';
 import {
   Box,
   Container,
@@ -37,8 +38,7 @@ const Contact = () => {
   });
 
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [state, formspreeSubmit] = useForm('xykbqdvy');
   const toast = useToast();
 
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -108,45 +108,29 @@ const Contact = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (validateForm()) {
-      setIsSubmitting(true);
-
-      // Simulate form submission
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setIsSubmitted(true);
-        setFormData({
-          name: '',
-          email: '',
-          subject: '',
-          message: '',
-        });
-
-        toast({
-          title: 'Message sent!',
-          description: "Thanks for reaching out. I'll get back to you soon.",
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-          position: 'top',
-        });
-
-        // Reset submission status after a delay
-        setTimeout(() => {
-          setIsSubmitted(false);
-        }, 5000);
-      }, 1500);
+      formspreeSubmit(e);
     }
   };
 
-  // Easter egg - hidden message in form
-  const [easterEggActive, setEasterEggActive] = useState(false);
+  useEffect(() => {
+    if (state.succeeded) {
+      setFormData({ name: '', email: '', subject: '', message: '' });
+      setErrors({});
+      toast({
+        title: 'Message sent!',
+        description: "Thanks for reaching out. I'll get back to you soon.",
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+        position: 'top',
+      });
+    }
+  }, [state.succeeded]);
 
+  // Easter egg - hidden message in form
   const activateEasterEgg = () => {
     if (formData.message.toLowerCase().includes('easter egg')) {
-      setEasterEggActive(true);
-
       // Update localStorage to mark this easter egg as found
       const unlockedEggs = JSON.parse(localStorage.getItem('unlockedEasterEggs') || '[]');
       if (!unlockedEggs.includes('message')) {
@@ -260,6 +244,7 @@ const Contact = () => {
                     _hover={{ borderColor: 'brand.300' }}
                   />
                   <FormErrorMessage>{errors.email}</FormErrorMessage>
+                  <ValidationError field="email" errors={state.errors} />
                 </FormControl>
 
                 <FormControl isInvalid={errors.subject}>
@@ -290,14 +275,16 @@ const Contact = () => {
                     rows={5}
                   />
                   <FormErrorMessage>{errors.message}</FormErrorMessage>
+                  <ValidationError field="message" errors={state.errors} />
                 </FormControl>
 
                 <Button
                   mt={4}
                   colorScheme="brand"
                   type="submit"
-                  isLoading={isSubmitting}
+                  isLoading={state.submitting}
                   loadingText="Sending..."
+                  isDisabled={state.succeeded}
                   w="full"
                   _hover={{
                     transform: 'translateY(-2px)',
@@ -305,7 +292,7 @@ const Contact = () => {
                   }}
                   transition="all 0.3s ease"
                 >
-                  {isSubmitted ? 'Message Sent!' : 'Send Message'}
+                  {state.succeeded ? 'Message Sent!' : 'Send Message'}
                 </Button>
               </VStack>
             </form>
